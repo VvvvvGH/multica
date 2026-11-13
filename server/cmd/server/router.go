@@ -431,6 +431,7 @@ func NewRouterWithOptions(pool *pgxpool.Pool, hub *realtime.Hub, bus *events.Bus
 	origins := allowedOrigins()
 
 	signupConfig := handler.Config{
+		PasswordAuthEnabled:            os.Getenv("MULTICA_PASSWORD_AUTH") == "true",
 		AllowSignup:                    os.Getenv("ALLOW_SIGNUP") != "false",
 		AllowedEmails:                  splitAndTrim(os.Getenv("ALLOWED_EMAILS")),
 		AllowedEmailDomains:            splitAndTrim(os.Getenv("ALLOWED_EMAIL_DOMAINS")),
@@ -1592,6 +1593,7 @@ func NewRouterWithOptions(pool *pgxpool.Pool, hub *realtime.Hub, bus *events.Bus
 	siteStarReadRL := middleware.RateLimit(rdb, envPositiveInt("RATE_LIMIT_SITE_STAR_READ", 30), time.Minute, trustedProxies)
 	siteStarSpinRL := middleware.RateLimit(rdb, envPositiveInt("RATE_LIMIT_SITE_STAR_SPIN", 40), time.Minute, trustedProxies)
 	r.With(authRL).Post("/auth/send-code", h.SendCode)
+	r.With(authRL).Post("/auth/password", h.PasswordLogin)
 	r.With(authVerifyRL).Post("/auth/verify-code", h.VerifyCode)
 	r.With(authRL).Post("/auth/google", h.GoogleLogin)
 	r.Post("/auth/logout", h.Logout)
@@ -1752,6 +1754,8 @@ func NewRouterWithOptions(pool *pgxpool.Pool, hub *realtime.Hub, bus *events.Bus
 		r.Get("/api/theme-store/themes/{themeId}/package", h.GetStoreThemePackage)
 		r.Get("/api/theme-store/themes/{themeId}/screenshots/{mode}", h.GetStoreThemeScreenshot)
 		r.Get("/api/me", h.GetMe)
+		r.With(handler.RequireHumanActor).Get("/api/me/password", h.GetPasswordStatus)
+		r.With(handler.RequireHumanActor, authVerifyRL).Put("/api/me/password", h.SetPassword)
 		r.Patch("/api/me", h.UpdateMe)
 		r.Patch("/api/me/onboarding", h.PatchOnboarding)
 		r.Post("/api/me/onboarding/complete", h.CompleteOnboarding)

@@ -1892,6 +1892,12 @@ type UserComposioConnection struct {
 	UpdatedAt          pgtype.Timestamptz `json:"updated_at"`
 }
 
+type UserPassword struct {
+	UserID       pgtype.UUID        `json:"user_id"`
+	PasswordHash string             `json:"password_hash"`
+	UpdatedAt    pgtype.Timestamptz `json:"updated_at"`
+}
+
 type VcsCommitStatus struct {
 	ConnectionID pgtype.UUID        `json:"connection_id"`
 	Sha          string             `json:"sha"`

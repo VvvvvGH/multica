@@ -1,5 +1,13 @@
 # Repository Instructions
 
+## Fork Maintenance Identity
+
+This personal fork is maintained at `https://github.com/VvvvvGH/multica`.
+Use `VvvvvGH <cheng123xp@gmail.com>` for both author and committer on new commits.
+Set identity with repository-local Git configuration, and verify both identities before pushing.
+Keep employer names and internal workplace identifiers out of new code, documentation, examples, and delivery notes.
+Push maintenance work to this fork; retain the original project as the read-only `upstream` remote.
+
 This codebase is yours: what it's for and how it's built are your call, and you'll keep building on it.
 
 Multica is a task management platform where people and agents collaborate on issues. These instructions apply to all coding agents working in this repository.
