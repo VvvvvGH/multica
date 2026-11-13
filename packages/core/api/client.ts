@@ -27,6 +27,7 @@ import type {
   CreateDocFolderRequest,
 } from "../types/doc";
 import type { ZodType } from "zod";
+import { PasswordLoginResponseSchema, PasswordStatusSchema } from "./schemas";
 import { AgentRuntimeSchema, EMPTY_RUNTIME } from "../runtimes/schema";
 import type { IssueWakeup, IssueWakeupInput, IssueWakeupSummaryRow, PausedWakeup, SystemWakeup, WakeupRun, WorkspaceSystemWakeup } from "../types/issue-wakeup";
 import type { WorkspaceWakeupPage, WorkspaceWakeupFilters } from "../types/issue-wakeup";
@@ -1411,6 +1412,30 @@ export class ApiClient {
   }
 
   // Auth
+  async passwordLogin(email: string, password: string): Promise<LoginResponse> {
+    const raw = await this.fetch<unknown>("/auth/password", {
+      method: "POST",
+      body: JSON.stringify({ email, password }),
+    });
+    const parsed = parseWithFallback<LoginResponse | null>(raw, PasswordLoginResponseSchema, null, { endpoint: "passwordLogin" });
+    if (!parsed) throw new Error("Invalid password login response");
+    return parsed;
+  }
+
+  async getPasswordStatus(): Promise<{ enabled: boolean; configured: boolean }> {
+    const raw = await this.fetch<unknown>("/api/me/password");
+    const parsed = parseWithFallback<{ enabled: boolean; configured: boolean } | null>(raw, PasswordStatusSchema, null, { endpoint: "getPasswordStatus" });
+    if (!parsed) throw new Error("Invalid password status response");
+    return parsed;
+  }
+
+  async setPassword(password: string, currentPassword: string): Promise<void> {
+    await this.fetch("/api/me/password", {
+      method: "PUT",
+      body: JSON.stringify({ password, current_password: currentPassword }),
+    });
+  }
+
   async sendCode(email: string): Promise<void> {
     await this.fetch("/auth/send-code", {
       method: "POST",
