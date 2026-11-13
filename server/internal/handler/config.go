@@ -12,7 +12,8 @@ import (
 )
 
 type AppConfig struct {
-	CdnDomain string `json:"cdn_domain"`
+	PasswordAuthEnabled bool   `json:"password_auth_enabled"`
+	CdnDomain           string `json:"cdn_domain"`
 	// The origin used for durable private-attachment Markdown links. Clients
 	// use it only to recognize links belonging to this deployment.
 	AttachmentPublicURL string `json:"attachment_public_url,omitempty"`
@@ -137,6 +138,7 @@ func (h *Handler) GetConfig(w http.ResponseWriter, r *http.Request) {
 		IssueCreatePropertiesSupported:     true,
 		CommentDeleteKeepRepliesSupported:  true,
 		IssueBatchOpsSupported:             true,
+		PasswordAuthEnabled:                h.cfg.PasswordAuthEnabled,
 		AllowSignup:                        os.Getenv("ALLOW_SIGNUP") != "false",
 		GoogleClientID:                     os.Getenv("GOOGLE_CLIENT_ID"),
 		WorkspaceCreationDisabled:          os.Getenv("DISABLE_WORKSPACE_CREATION") == "true",

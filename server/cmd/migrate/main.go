@@ -163,6 +163,7 @@ var concurrentIndexCleanups = map[string]string{
 	"641_issue_environment_command_logs_idx":                    "idx_issue_environment_command_logs",
 	"640_issue_environment_command_issue_idx":                   "idx_issue_environment_command_issue",
 	"639_issue_environment_command_pending_idx":                 "idx_issue_environment_command_pending",
+	"686_user_password_user_idx":                                "uq_user_password_user",
 	"635_issue_environment_issue_idx":                           "idx_issue_environment_issue",
 	"634_issue_environment_task_key_idx":                        "uq_issue_environment_task_key",
 	"632_project_member_user_idx":                               "idx_project_member_workspace_user",

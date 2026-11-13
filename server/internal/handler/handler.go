@@ -70,6 +70,7 @@ type dbExecutor interface {
 }
 
 type Config struct {
+	PasswordAuthEnabled bool
 	AllowSignup         bool
 	AllowedEmails       []string
 	AllowedEmailDomains []string

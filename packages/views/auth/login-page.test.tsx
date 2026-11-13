@@ -27,6 +27,8 @@ function renderWithI18n(ui: ReactElement) {
 // Hoisted mocks
 // ---------------------------------------------------------------------------
 
+const passwordConfig = vi.hoisted(() => ({ password_auth_enabled: false }));
+const mockPasswordLogin = vi.hoisted(() => vi.fn());
 const mockSendCode = vi.hoisted(() => vi.fn());
 const mockVerifyCode = vi.hoisted(() => vi.fn());
 const mockApiListWorkspaces = vi.hoisted(() => vi.fn());
@@ -42,7 +44,7 @@ vi.mock("@tanstack/react-query", async () => {
   const actual = await vi.importActual<typeof import("@tanstack/react-query")>(
     "@tanstack/react-query",
   );
-  return { ...actual, useQueryClient: () => ({ setQueryData: mockSetQueryData }) };
+  return { ...actual, useQuery: () => ({ data: passwordConfig }), useQueryClient: () => ({ setQueryData: mockSetQueryData }) };
 });
 
 vi.mock("@multica/core/auth", () => ({
@@ -50,6 +52,7 @@ vi.mock("@multica/core/auth", () => ({
     // Zustand hook form — component may call useAuthStore(selector)
     (selector?: (s: unknown) => unknown) => {
       const state = {
+        loginWithPassword: mockPasswordLogin,
         sendCode: mockSendCode,
         verifyCode: mockVerifyCode,
         expired: mockAuthState.expired,
@@ -58,6 +61,7 @@ vi.mock("@multica/core/auth", () => ({
     },
     {
       getState: () => ({
+        loginWithPassword: mockPasswordLogin,
         sendCode: mockSendCode,
         verifyCode: mockVerifyCode,
       }),
@@ -103,6 +107,7 @@ describe("LoginPage", () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     vi.clearAllMocks();
     mockAuthState.expired = false;
+    passwordConfig.password_auth_enabled = false;
     // Default: no existing session (getMe rejects when no auth)
     mockApiGetMe.mockRejectedValue(new Error("unauthorized"));
     localStorage.clear();
@@ -120,6 +125,23 @@ describe("LoginPage", () => {
   // -------------------------------------------------------------------------
   // Email step rendering
   // -------------------------------------------------------------------------
+
+  it("signs in with a password and can switch back to verification codes", async () => {
+    passwordConfig.password_auth_enabled = true;
+    mockPasswordLogin.mockResolvedValue({ id: "user-1" });
+    mockApiListWorkspaces.mockResolvedValue([]);
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    renderWithI18n(<LoginPage onSuccess={onSuccess} />);
+    await user.type(screen.getByLabelText("Email"), "owner@example.com");
+    await user.type(screen.getByLabelText("Password"), "test-password");
+    await user.click(screen.getByRole("button", { name: "Sign in with password" }));
+    await waitFor(() => expect(mockPasswordLogin).toHaveBeenCalledWith("owner@example.com", "test-password"));
+    expect(mockSendCode).not.toHaveBeenCalled();
+    expect(onSuccess).toHaveBeenCalled();
+    await user.click(screen.getByRole("button", { name: "Use email verification code" }));
+    expect(screen.queryByLabelText("Password")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Continue" })).toBeInTheDocument();
+  });
 
   it("says the session expired when that is why the user is here", () => {
     mockAuthState.expired = true;

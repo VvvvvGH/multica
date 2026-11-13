@@ -15,6 +15,7 @@ import {
   SettingsSection,
   SettingsTab,
 } from "./settings-layout";
+import { PasswordSettings } from "./password-settings";
 import { useAutoSave } from "./use-auto-save";
 
 // Mirror server/internal/handler/auth.go:MaxProfileDescriptionLen. Counted in
@@ -186,6 +187,7 @@ export function AccountTab() {
           </SettingsRow>
         </SettingsCard>
       </SettingsSection>
+      <PasswordSettings />
     </SettingsTab>
   );
 }

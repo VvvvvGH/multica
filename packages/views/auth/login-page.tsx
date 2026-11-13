@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef, type ReactNode } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Card,
   CardHeader,
@@ -106,6 +106,10 @@ export function LoginPage({
   const qc = useQueryClient();
   const [step, setStep] = useState<"email" | "code" | "cli_confirm">("email");
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [usePassword, setUsePassword] = useState(true);
+  const { data: appConfig } = useQuery({ queryKey: ["app-config"], queryFn: () => api.getConfig() });
+  const passwordMode = appConfig?.password_auth_enabled === true && usePassword;
   const [code, setCode] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -232,6 +236,30 @@ export function LoginPage({
     },
     [email, onSuccess, cliCallback, onTokenObtained, qc, t],
   );
+
+  const handlePasswordLogin = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setLoading(true);
+    setError("");
+    try {
+      if (cliCallback) {
+        const { token } = await api.passwordLogin(email, password);
+        onTokenObtained?.();
+        redirectToCliCallback(cliCallback.url, token, cliCallback.state);
+        return;
+      }
+      await useAuthStore.getState().loginWithPassword(email, password);
+      const wsList = await api.listWorkspaces();
+      qc.setQueryData(workspaceKeys.list(), wsList);
+      setPassword("");
+      onTokenObtained?.();
+      onSuccess();
+    } catch (error) {
+      setError(error instanceof Error ? error.message : t(($) => $.password.failed));
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleResend = async () => {
     if (cooldown > 0) return;
@@ -416,7 +444,7 @@ export function LoginPage({
             {t(($) => $.signin.title)}
           </CardTitle>
           <CardDescription>
-            {t(($) => $.signin.description)}
+            {passwordMode ? t(($) => $.password.login) : t(($) => $.signin.description)}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -427,12 +455,13 @@ export function LoginPage({
               </AlertDescription>
             </Alert>
           )}
-          <form id="login-form" onSubmit={handleSendCode} className="space-y-4">
+          <form id="login-form" onSubmit={passwordMode ? handlePasswordLogin : handleSendCode} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="login-email">{t(($) => $.common.email)}</Label>
               <Input
                 id="login-email"
                 type="email"
+                autoComplete="username"
                 placeholder={t(($) => $.common.email_placeholder)}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -440,8 +469,15 @@ export function LoginPage({
                 required
               />
             </div>
+            {passwordMode && (
+              <div className="space-y-2">
+                <Label htmlFor="login-password">{t(($) => $.password.label)}</Label>
+                <Input id="login-password" type="password" autoComplete="current-password"
+                  value={password} onChange={(event) => setPassword(event.target.value)} required disabled={loading} />
+              </div>
+            )}
             {error && (
-              <p className="text-body text-destructive">{error}</p>
+              <p role="alert" className="text-body text-destructive">{error}</p>
             )}
           </form>
         </CardContent>
@@ -451,12 +487,16 @@ export function LoginPage({
             form="login-form"
             className="w-full"
             size="lg"
-            disabled={!email || loading}
+            disabled={!email || (passwordMode && !password) || loading}
           >
-            {loading
-              ? t(($) => $.signin.sending)
-              : t(($) => $.signin.continue)}
+            {loading ? (passwordMode ? t(($) => $.password.signing_in) : t(($) => $.signin.sending))
+              : (passwordMode ? t(($) => $.password.login) : t(($) => $.signin.continue))}
           </Button>
+          {appConfig?.password_auth_enabled && (
+            <Button type="button" variant="ghost" disabled={loading} onClick={() => {
+              setUsePassword(!usePassword); setPassword(""); setError("");
+            }}>{passwordMode ? t(($) => $.password.use_code) : t(($) => $.password.login)}</Button>
+          )}
           {(google || onGoogleLogin) && (
             <Button
               type="button"
